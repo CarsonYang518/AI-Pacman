@@ -275,7 +275,6 @@ class DeceptiveSearchAgentpi3(SearchAgent):
         action2 = search.aStarSearch(prob2)
         self.actions.extend(action1)
         self.actions.extend(action2)
-        print(self.actions)
         return self.actions
         #COMP90054 Task 4 - Implement your deceptive search algorithm here
         #util.raiseNotDefined()
@@ -284,7 +283,6 @@ class DeceptiveSearchAgentpi3(SearchAgent):
         children = []
         for action in self.getActions(state):
             nextState = self.getNextState(state, action)
-            cost = 1
             children.append([nextState, 1])
         return children
 
