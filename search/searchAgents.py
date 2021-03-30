@@ -137,15 +137,180 @@ class SearchAgent(Agent):
 class DeceptiveSearchAgentpi2(SearchAgent):
     "Search for all food using a sequence of searches"
     def registerInitialState(self, state):
-        #COMP90054 Task 4 - Implement your deceptive search algorithm here
-        util.raiseNotDefined()
-        
+        # COMP90054 Task 4 - Implement your deceptive search algorithm here
+        self.walls = state.getWalls()
+        self.actions = []
+        currentState = state
+        currentPostion = currentState.getPacmanPosition()
+        capsulesPosition = currentState.getCapsules()
+        # assume there's only one food
+        foodPosition = currentState.getFood().asList()[0]
+        minCapsulevalue = float('inf')
+        for p in capsulesPosition:
+            temp = (mazeDistance(foodPosition, p, state) +
+                    mazeDistance(currentPostion, foodPosition, state) - \
+                    mazeDistance(currentPostion, p, state))/2
+            minCapsulevalue = min(minCapsulevalue, temp)
+
+        targetNode = tuple()
+        targetValueGap = float('inf')
+        myqueue = util.Queue()
+        startPosition = state.getPacmanPosition()
+        myqueue.push(startPosition)
+        visited = set()
+        while not myqueue.isEmpty():
+            p = myqueue.pop()
+            if p not in visited:
+                visited.add(p)
+                succPositions = self.expand(p)
+                for succPosition in succPositions:
+                    if succPosition not in currentState.getFood().asList() and succPosition not in capsulesPosition:
+                        temp = mazeDistance(succPosition, foodPosition, state)
+                        gap = abs(temp - minCapsulevalue)
+                        deceptive = False
+                        for caps in capsulesPosition:
+                            costdifForg = mazeDistance(succPosition, foodPosition, state) - \
+                                  mazeDistance(currentPostion, foodPosition, state)
+                            costdifForc = mazeDistance(succPosition, caps, state) - \
+                                  mazeDistance(currentPostion, caps, state)
+                            if costdifForg >= costdifForc:
+                                deceptive = True
+                                break
+                        if targetValueGap >= gap and deceptive:
+                            targetValueGap = gap
+                            targetNode = succPosition
+                        myqueue.push(succPosition)
+        prob1 = PositionSearchProblem(state, start=currentPostion, goal=targetNode, warn=False, visualize=False)
+        prob2 = PositionSearchProblem(state, start=targetNode, goal=foodPosition, warn=False, visualize=False)
+        action1 = search.aStarSearch(prob1)
+        action2 = search.aStarSearch(prob2)
+        self.actions.extend(action1)
+        self.actions.extend(action2)
+        return self.actions
+        # util.raiseNotDefined()
+
+    def expand(self, state):
+        children = []
+        for action in self.getActions(state):
+            nextState = self.getNextState(state, action)
+            children.append(nextState)
+        return children
+
+    def getActions(self, state):
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        valid_actions_from_state = []
+        for action in possible_directions:
+            x, y = state
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                valid_actions_from_state.append(action)
+        return valid_actions_from_state
+
+    def getNextState(self, state, action):
+        assert action in self.getActions(state), (
+            "Invalid action passed to getActionCost().")
+        x, y = state
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        return (nextx, nexty)
+
+
 class DeceptiveSearchAgentpi3(SearchAgent):
     "Search for all food using a sequence of searches"
     def registerInitialState(self, state):
+        self.walls = state.getWalls()
+        self.actions = []
+        currentState = state
+        currentPostion = currentState.getPacmanPosition()
+        capsulesPosition = currentState.getCapsules()
+        # assume there's only one food
+        foodPosition = currentState.getFood().asList()[0]
+        minCapsulevalue = float('inf')
+        minCapsuleposition = tuple()
+        for p in capsulesPosition:
+            temp = (mazeDistance(foodPosition, p, state) +
+                    mazeDistance(currentPostion, foodPosition, state) - \
+                    mazeDistance(currentPostion, p, state)) / 2
+            if minCapsulevalue > temp:
+                minCapsulevalue = temp
+                minCapsuleposition = p
+
+        targetNode = tuple()
+        targetValueGap = float('inf')
+        mypriorityqueue = util.PriorityQueue()
+        startNode = [currentPostion, 0]
+        mypriorityqueue.push(startNode, 0)
+        closed = set()
+        while not mypriorityqueue.isEmpty():
+            node = mypriorityqueue.pop()
+            position, cost = node
+            if p not in closed:
+                closed.add(p)
+                succPositions = self.expand(p)
+                for succNode in succPositions:
+                    succPosition, succCost= succNode
+                    newCost = cost + succCost
+                    if succPosition not in currentState.getFood().asList() and succPosition not in capsulesPosition:
+                        h_value = self.myHeuristic(position, foodPosition, minCapsuleposition, succPosition, state)
+                        temp = mazeDistance(succPosition, foodPosition, state)
+                        gap = abs(temp - minCapsulevalue)
+                        deceptive = False
+                        for caps in capsulesPosition:
+                            costdifForg = mazeDistance(succPosition, foodPosition, state) - \
+                                          mazeDistance(currentPostion, foodPosition, state)
+                            costdifForc = mazeDistance(succPosition, caps, state) - \
+                                          mazeDistance(currentPostion, caps, state)
+                            if costdifForg >= costdifForc:
+                                deceptive = True
+                                break
+                        if targetValueGap >= gap and deceptive:
+                            targetValueGap = gap
+                            targetNode = succPosition
+                        mypriorityqueue.push(succPosition, h_value+newCost)
+
+        prob1 = PositionSearchProblem(state, start=currentPostion, goal=targetNode, warn=False, visualize=False)
+        prob2 = PositionSearchProblem(state, start=targetNode, goal=foodPosition, warn=False, visualize=False)
+        action1 = search.aStarSearch(prob1)
+        action2 = search.aStarSearch(prob2)
+        self.actions.extend(action1)
+        self.actions.extend(action2)
+        print(self.actions)
+        return self.actions
         #COMP90054 Task 4 - Implement your deceptive search algorithm here
-        util.raiseNotDefined()
- 
+        #util.raiseNotDefined()
+
+    def expand(self, state):
+        children = []
+        for action in self.getActions(state):
+            nextState = self.getNextState(state, action)
+            cost = 1
+            children.append([nextState, 1])
+        return children
+
+    def getActions(self, state):
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        valid_actions_from_state = []
+        for action in possible_directions:
+            x, y = state
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                valid_actions_from_state.append(action)
+        return valid_actions_from_state
+
+    def getNextState(self, state, action):
+        assert action in self.getActions(state), (
+            "Invalid action passed to getActionCost().")
+        x, y = state
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        return (nextx, nexty)
+
+    def myHeuristic(self, curNode, goalNode, gminNode, nextNode, gameState):
+        if mazeDistance(curNode, goalNode, gameState) < mazeDistance(curNode, gminNode, gameState):
+            return 2 * mazeDistance(curNode, nextNode, gameState)
+        return mazeDistance(curNode, nextNode, gameState)
 
 class PositionSearchProblem(search.SearchProblem):
     """
@@ -563,8 +728,83 @@ def foodHeuristic(state, problem):
     position, foodGrid, capsules = state
     #COMP90054 Task 3, Implement your code here
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-   
+    position, foodGrid, capsules = state
+    foodList = foodGrid.asList()
+    distanceList = list()
+    if 'capsCount' not in problem.heuristicInfo:
+        problem.heuristicInfo['capsCount'] = 0
+
+    if len(foodList) == 0:
+        return 0
+
+    for foodpostion in foodList:
+        if (position, foodpostion) not in problem.heuristicInfo or problem.heuristicInfo['capsCount'] != len(capsules):
+            distance = 0
+            states = mazeDistanceState(position, foodpostion, problem.startingGameState)
+            for s in states:
+                if s not in capsules:
+                    distance += 1
+            problem.heuristicInfo[(position, foodpostion)] = distance
+
+    for capsulepostion in capsules:
+        caps = list()
+        states = mazeDistanceState(position, capsulepostion, problem.startingGameState)
+        distance = len(states)
+        for s in states:
+            if s in capsules:
+                distance -= 1
+                caps.append(s)
+        problem.heuristicInfo[(position, capsulepostion)] = distance
+
+        tuple(caps)
+        for foodpostion in foodList:
+            if (capsulepostion, foodpostion) not in problem.heuristicInfo:
+                states = mazeDistanceState(capsulepostion, foodpostion, problem.startingGameState)
+                distance = len(states)
+                for s in states:
+                    if s in capsules and s not in caps:
+                        distance -= 1
+                problem.heuristicInfo[(capsulepostion, foodpostion)] = distance
+
+    for foodpostion in foodList:
+        mindis = problem.heuristicInfo[(position, foodpostion)]
+        for capsulepostion in capsules:
+            dis = problem.heuristicInfo[(position, capsulepostion)] + problem.heuristicInfo[
+                (capsulepostion, foodpostion)]
+            mindis = min(mindis, dis)
+        distanceList.append(mindis)
+
+    problem.heuristicInfo['capsCount'] = len(capsules)
+    return max(distanceList)
+
+
+def mazeDistanceState(point1, point2, gameState):
+    prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
+    return mybreadthFirstSearch(prob)
+
+
+def mybreadthFirstSearch(problem):
+    myqueue = util.Queue()
+    startNode = (problem.getStartState(), '', 0, [])
+    myqueue.push(startNode)
+    visited = set()
+    while myqueue:
+        node = myqueue.pop()
+        state, action, cost, path = node
+        if state not in visited:
+            visited.add(state)
+            if problem.isGoalState(state):
+                path = path + [(state, action)]
+                break
+            succNodes = problem.expand(state)
+            for succNode in succNodes:
+                succState, succAction, succCost = succNode
+                newNode = (succState, succAction, cost + succCost, path + [(state, action)])
+                myqueue.push(newNode)
+    states = [action[0] for action in path]
+    del states[0]
+    return states
+
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"

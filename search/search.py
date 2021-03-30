@@ -124,7 +124,7 @@ def depthFirstSearch(problem):
             visited.add(state)
             if problem.isGoalState(state) :
                 path = path + [(state, action)]
-                break;
+                break
             succNodes = problem.expand(state)
             for succNode in succNodes :
                 succState, succAction, succCost = succNode
@@ -137,7 +137,26 @@ def depthFirstSearch(problem):
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    myqueue = util.Queue()
+    startNode = (problem.getStartState(), '', 0, [])
+    myqueue.push(startNode)
+    visited = set()
+    while myqueue:
+        node = myqueue.pop()
+        state, action, cost, path = node
+        if state not in visited:
+            visited.add(state)
+            if problem.isGoalState(state) :
+                path = path + [(state, action)]
+                break
+            succNodes = problem.expand(state)
+            for succNode in succNodes:
+                succState, succAction, succCost = succNode
+                newNode = (succState, succAction, cost + succCost, path + [(state, action)])
+                myqueue.push(newNode)
+    actions = [action[1] for action in path]
+    del actions[0]
+    return actions
 
 def nullHeuristic(state, problem=None):
     """
@@ -150,16 +169,75 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     #COMP90054 Task 1, Implement your A Star search algorithm here
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    mypriorityqueue = util.PriorityQueue()
+    startNode = (problem.getStartState(), '', 0, [])
+    mypriorityqueue.push(startNode, 0)
+    closed = set()
+    best_g = dict()
+    while mypriorityqueue:
+        node = mypriorityqueue.pop()
+        state, action, cost, path = node
+        f_value = heuristic(state, problem) + cost
+        if state not in closed or f_value < best_g[state]:
+            closed.add(state)
+            best_g[state] = f_value
+            if problem.isGoalState(state):
+                path = path + [(state, action)]
+                break
+            succNodes = problem.expand(state)
+            for succNode in succNodes:
+                succState, succAction, succCost = succNode
+                newCost = cost + succCost
+                newNode = (succState, succAction, newCost, path + [(state, action)])
+                new_f_value = heuristic(succState, problem) + newCost
+                if new_f_value < float('inf'):
+                    mypriorityqueue.push(newNode, new_f_value)
+    actions = [action[1] for action in path]
+    del actions[0]
+    return actions
 
         
 def recursivebfs(problem, heuristic=nullHeuristic) :
     #COMP90054 Task 2, Implement your Recursive Best First Search algorithm here
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-    
+    startNode = [problem.getStartState(), '', 0, [], heuristic(problem.getStartState(), problem)]
+    path, _ = rbfs(problem, startNode, float('inf'), heuristic)
+    actions = [action[1] for action in path]
+    del actions[0]
+    return actions
+    #util.raiseNotDefined()
 
-    
+
+def rbfs(problem, node, f_limit, heuristic):
+    state, action, cost, path, f_value = node
+    if problem.isGoalState(state):
+        path = path + [(state, action)]
+        return path, 0
+    successors = list()
+    for succNode in problem.expand(state):
+        succState, succAction, succCost = succNode
+        newCost = cost + succCost
+        newPath = path + [(state, action)]
+        new_f_value = max(newCost + heuristic(succState, problem), f_value)
+        newNode = [succState, succAction, newCost, newPath, new_f_value]
+        successors.append(newNode)
+    if len(successors) == 0:
+        return None, float('inf')
+    successors.sort(key=lambda k: k[4])
+    while True:
+        best = successors[0]
+        best_f = best[4]
+        if best_f > f_limit:
+            return None, best_f
+        alternative = float('inf')
+        if len(successors) >= 2:
+            alternative = successors[1][4]
+        result, successors[0][4] = rbfs(problem, best, min(f_limit, alternative), heuristic)
+        successors.sort(key=lambda k: k[4])
+        if result is not None:
+            return result, 0
+
+
 # Abbreviations
 bfs = breadthFirstSearch
 dfs = depthFirstSearch
