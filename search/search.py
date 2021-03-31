@@ -177,10 +177,9 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     while mypriorityqueue:
         node = mypriorityqueue.pop()
         state, action, cost, path = node
-        f_value = heuristic(state, problem) + cost
-        if state not in closed or f_value < best_g[state]:
+        if state not in closed or cost < best_g[state]:
             closed.add(state)
-            best_g[state] = f_value
+            best_g[state] = cost
             if problem.isGoalState(state):
                 path = path + [(state, action)]
                 break
@@ -190,7 +189,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
                 newCost = cost + succCost
                 newNode = (succState, succAction, newCost, path + [(state, action)])
                 new_f_value = heuristic(succState, problem) + newCost
-                if new_f_value < float('inf'):
+                if heuristic(succState, problem) < float('inf'):
                     mypriorityqueue.push(newNode, new_f_value)
     actions = [action[1] for action in path]
     del actions[0]
